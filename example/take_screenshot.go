@@ -19,7 +19,6 @@ func main() {
 	}
 	fmt.Println("Title:", response.Title)
 	fmt.Println("Url:", response.Url)
-	fmt.Println("RequestedUrl:", response.RequestedUrl)
 	err = response.SavedPng("./baidu_github.png")
 	if err != nil {
 		panic(err)
