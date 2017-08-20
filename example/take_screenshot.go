@@ -9,11 +9,11 @@ import (
 )
 
 func main() {
-	request, err := splash.NewSplashRequest("localhost", "8050")
+	client, err := splash.NewSplashClient("localhost", "8050")
 	if err != nil {
 		panic(err)
 	}
-	response, err := request.Get("https://www.baidu.com/s?wd=github", &splash.Option{Png: true})
+	response, err := client.Get("https://www.baidu.com/s?wd=github", &splash.Option{Png: true})
 	if err != nil {
 		panic(err)
 	}

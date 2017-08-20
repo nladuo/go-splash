@@ -11,8 +11,6 @@ type Response struct {
 	RequestedUrl string
 	Base64Png    string
 	Html         string
-	Script       string   //result of JS Script
-	Console      []string //the console.log of JS Script
 }
 
 func (this *Response) SavedPng(filename string) error {

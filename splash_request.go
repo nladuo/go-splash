@@ -1,6 +1,7 @@
 package splash
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -8,21 +9,35 @@ import (
 	"github.com/bitly/go-simplejson"
 )
 
-type SplashRequest struct {
+type SplashClient struct {
 	SplashHost string
 	SplashPort string
 }
 
-func NewSplashRequest(splash_host string, splash_port string) (*SplashRequest, error) {
-	request := SplashRequest{
-		SplashHost: splash_host,
-		SplashPort: splash_port,
+// check the splash service availability
+func checkSplashUrl(splash_url string) bool {
+	resp, err := http.Get(splash_url)
+	if err != nil {
+		return false
 	}
-	return &request, nil
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return false
+	}
+	JSON, err := simplejson.NewJson(body)
+	if err != nil {
+		return false
+	}
+
+	err_code, _ := JSON.Get("error").Int()
+	return err_code == 400
 }
 
-func (this *SplashRequest) formatRequestUrl(url string, option *Option) string {
-	request_url := fmt.Sprintf("http://localhost:8050/render.json?url=%s&html=1", url)
+// format the request url with option
+func (this *SplashClient) formatRequestUrl(url string, option *Option) string {
+	request_url := fmt.Sprintf("http://%s:%s/render.json?url=%s&html=1",
+		this.SplashHost, this.SplashPort, url)
 	if option.Png {
 		request_url += "&png=1"
 	}
@@ -35,19 +50,32 @@ func (this *SplashRequest) formatRequestUrl(url string, option *Option) string {
 	return request_url
 }
 
-func (this *SplashRequest) Get(url string, option *Option) (*Response, error) {
+func NewSplashClient(splash_host string, splash_port string) (*SplashClient, error) {
+	splash_url := fmt.Sprintf("http://%s:%s", splash_host, splash_port)
+	if !checkSplashUrl(splash_url + "/render.json") {
+		return nil, errors.New("Splash service is unavailable at " + splash_url)
+	}
+
+	client := SplashClient{
+		SplashHost: splash_host,
+		SplashPort: splash_port,
+	}
+	return &client, nil
+}
+
+func (this *SplashClient) Get(url string, option *Option) (*Response, error) {
 	request_url := this.formatRequestUrl(url, option)
 	resp, err := http.Get(request_url)
 	if err != nil {
 		return nil, err
 	}
-	byte_data, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	JSON, err := simplejson.NewJson(byte_data)
+	JSON, err := simplejson.NewJson(body)
 	if err != nil {
 		return nil, err
 	}
